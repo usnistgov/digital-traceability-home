@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metrology Interoperability Standard - Interactive Schema Viewer</title>
+    <style>
+        :root {
+            --bg-color: #f9f9fb;
+            --text-color: #333;
+            --border-color: #ccc;
+            --header-bg: #e0e0e0;
+            --band-bg-light: #ffffff;
+            --band-bg-dark: #f0f4f8;
+            --node-bg: #fff;
+            --node-border: #888;
+            --node-hover: #e8f0fe;
+            --primary: #1a73e8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .version {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 150px repeat(4, 1fr);
+            gap: 2px;
+            background-color: var(--border-color);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .grid-header {
+            background-color: var(--header-bg);
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            text-transform: capitalize;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .grid-cell {
+            padding: 15px;
+            background-color: var(--band-bg-light);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .row-alt .grid-cell {
+            background-color: var(--band-bg-dark);
+        }
+
+        .band-label {
+            font-weight: bold;
+            background-color: var(--header-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            border-right: 2px solid var(--border-color);
+        }
+
+        .node {
+            background-color: var(--node-bg);
+            border: 1px solid var(--node-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .node-name {
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .node-req {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .node-type {
+            color: #555;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .node-ref {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .node-ref:hover {
+            color: #0d47a1;
+        }
+
+        .node-interactive {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .node-interactive:hover {
+            background-color: var(--node-hover);
+            border-color: var(--primary);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            width: 80%;
+            max-width: 800px;
+            max-height: 85vh;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #555;
+        }
+        
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        /* Definition Table in Modal */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .type-link {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .breadcrumb {
+            padding: 10px 20px;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }
+
+        .breadcrumb span {
+            cursor: pointer;
+            color: var(--primary);
+        }
+        .breadcrumb span:hover {
+            text-decoration: underline;
+        }
+        .breadcrumb .separator {
+            margin: 0 8px;
+            color: #888;
+            cursor: default;
+        }
+        .breadcrumb .current {
+            font-weight: bold;
+            color: #333;
+            cursor: default;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Metrology Interoperability Standard (MIS) Schema</h1>
+    <div class="version">Generated based on v0.5.0 of the standard</div>
+
+    <div id="grid" class="grid-container">
+        <!-- Rendered by JS -->
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">#Definition</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="breadcrumb" id="modalBreadcrumb"></div>
+            <div class="modal-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Required</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const schema = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+        "#CertificateDataPackage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "acceptance_limits": {
+                    "type": "array",
+                    "prefixItems": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "number"
+                        }
+                    ],
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "accreditation_ref": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "cert_process_id": {
+                    "type": "string"
+                },
+                "computation_graph": {
+                    "const": {}
+                },
+                "conformity_statement": {
+                    "type": "string"
+                },
+                "customer_id": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "decision_rule": {
+                    "type": "string"
+                },
+                "digital_signature": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "document_hash": {
+                    "type": "string"
+                },
+                "extension_fields": {
+                    "const": {}
+                },
+                "guard_band": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            }
+                        }
+                    ]
+                },
+                "gum_mcm_comparison": {
+                    "const": {}
+                },
+                "influence_conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/%23CoreQuantity"
+                    }
+                },
+                "item_id": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "jacobian_matrix": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "type": "number"
+                                }
+                            }
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        }
+                    ]
+                },
+                "laboratory_id": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "measurement_date": {
+                    "type": "string"
+                },
+                "measurement_location": {
+                    "type": "string"
+                },
+                "measurement_method": {
+                    "type": "string"
+                },
+                "normative_refs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "provenance_dag": {
+                    "const": {}
+                },
+                "responsible_persons": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "result_hashes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "result_identifiers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "risk_probabilities": {
+                    "const": {}
+                },
+                "traceability_statement": {
+                    "type": "string"
+                },
+                "uncertainty_budget": {
+                    "const": {}
+                }
+            },
+            "required": [
+                "digital_signature"
+            ]
+        },
+        "#ComplexCartesian": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "imag": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23NumericArray"
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        },
+                        {
+                            "$ref": "#/$defs/%23Tensor"
+                        }
+                    ]
+                },
+                "real": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23NumericArray"
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        },
+                        {
+                            "$ref": "#/$defs/%23Tensor"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "imag",
+                "real"
+            ]
+        },
+        "#ComplexData": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/%23ComplexCartesian"
+                },
+                {
+                    "$ref": "#/$defs/%23ComplexPolar"
+                }
+            ]
+        },
+        "#ComplexPolar": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "mag": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23NumericArray"
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        },
+                        {
+                            "$ref": "#/$defs/%23Tensor"
+                        }
+                    ]
+                },
+                "phase": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23NumericArray"
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        },
+                        {
+                            "$ref": "#/$defs/%23Tensor"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "mag",
+                "phase"
+            ]
+        },
+        "#CoordinateMap": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/%23CoreQuantity"
+            }
+        },
+        "#CoreQuantity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "context": {
+                    "$ref": "#/$defs/%23PhysicalContext"
+                },
+                "data_hash": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "source_id": {
+                    "type": "string"
+                },
+                "standard_uncertainty": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "$ref": "#/$defs/%23DataPayload"
+                        }
+                    ]
+                },
+                "unit": {
+                    "type": "string"
+                },
+                "value": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "$ref": "#/$defs/%23DataPayload"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "data_hash",
+                "identifier",
+                "label",
+                "standard_uncertainty",
+                "unit",
+                "value"
+            ]
+        },
+        "#CovarianceStructure": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/%23DenseMatrix"
+                },
+                {
+                    "$ref": "#/$defs/%23DiagonalCovariance"
+                },
+                {
+                    "$ref": "#/$defs/%23SparseJacobian"
+                }
+            ]
+        },
+        "#DataPayload": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/%23NumericArray"
+                },
+                {
+                    "$ref": "#/$defs/%23ExternalReference"
+                },
+                {
+                    "$ref": "#/$defs/%23Tensor"
+                },
+                {
+                    "$ref": "#/$defs/%23ComplexData"
+                }
+            ]
+        },
+        "#DenseMatrix": {
+            "anyOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    }
+                },
+                {
+                    "$ref": "#/$defs/%23ExternalReference"
+                }
+            ]
+        },
+        "#DiagonalCovariance": {
+            "anyOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                {
+                    "$ref": "#/$defs/%23ExternalReference"
+                }
+            ]
+        },
+        "#ExternalReference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "checksum": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "algorithm": {
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "value"
+                    ]
+                },
+                "format": {
+                    "anyOf": [
+                        {
+                            "const": "hdf5"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "internal_path": {
+                    "type": "string"
+                },
+                "uri": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "checksum",
+                "format",
+                "uri"
+            ]
+        },
+        "#InfluenceQuantity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "iq_contribution": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "$ref": "#/$defs/%23DataPayload"
+                        }
+                    ]
+                },
+                "iq_distribution": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "distribution_family": {
+                            "type": "string"
+                        },
+                        "distribution_params": {
+                            "const": {}
+                        }
+                    }
+                },
+                "iq_dof": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "const": "Infinity"
+                        }
+                    ]
+                },
+                "iq_identifier": {
+                    "type": "string"
+                },
+                "iq_sensitivity": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "$ref": "#/$defs/%23DataPayload"
+                        }
+                    ]
+                },
+                "iq_standard_uncertainty": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "$ref": "#/$defs/%23DataPayload"
+                        }
+                    ]
+                },
+                "mc_samples": {
+                    "$ref": "#/$defs/%23DataPayload"
+                }
+            },
+            "required": [
+                "iq_identifier",
+                "iq_standard_uncertainty"
+            ]
+        },
+        "#Interface": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "context": {
+                    "$ref": "#/$defs/%23PhysicalContext"
+                },
+                "id": {
+                    "anyOf": [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "label": {
+                    "type": "string"
+                },
+                "plane": {
+                    "$ref": "#/$defs/%23ReferencePlane"
+                }
+            },
+            "required": [
+                "id",
+                "label",
+                "plane"
+            ]
+        },
+        "#InterfaceMap": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/$defs/%23Interface"
+            }
+        },
+        "#MeasurementResult": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "correlation_matrix": {
+                    "$ref": "#/$defs/%23DenseMatrix"
+                },
+                "covariance_matrix": {
+                    "$ref": "#/$defs/%23DenseMatrix"
+                },
+                "covariance_structure": {
+                    "$ref": "#/$defs/%23CovarianceStructure"
+                },
+                "coverage_factor": {
+                    "type": "number"
+                },
+                "coverage_interval": {
+                    "type": "array",
+                    "prefixItems": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "number"
+                        }
+                    ],
+                    "maxLength": 2,
+                    "minLength": 2
+                },
+                "coverage_probability": {
+                    "type": "number",
+                    "exclusiveMaximum": 1,
+                    "exclusiveMinimum": 0
+                },
+                "data_representation": {
+                    "type": "string"
+                },
+                "degrees_of_freedom": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "const": "Infinity"
+                        }
+                    ]
+                },
+                "distribution_family": {
+                    "type": "string"
+                },
+                "distribution_params": {
+                    "const": {}
+                },
+                "expanded_uncertainty": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "index_data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/%23CoreQuantity"
+                    }
+                },
+                "influence_quantities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/%23InfluenceQuantity"
+                    }
+                },
+                "interfaces": {
+                    "$ref": "#/$defs/%23InterfaceMap"
+                },
+                "is_ordinal": {
+                    "type": "boolean"
+                },
+                "mc_convergence": {
+                    "const": {}
+                },
+                "mc_rng_identifier": {
+                    "type": "string"
+                },
+                "mc_sample_count": {
+                    "type": "integer"
+                },
+                "mc_samples": {
+                    "$ref": "#/$defs/%23DataPayload"
+                },
+                "mc_seed": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "number"
+                            }
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                "process_identifier": {
+                    "type": "string"
+                },
+                "quantity_kind": {
+                    "type": "string"
+                },
+                "quantity_type": {
+                    "enum": [
+                        "scalar",
+                        "complex",
+                        "vector",
+                        "list"
+                    ]
+                },
+                "sensitivity_vector": {
+                    "$ref": "#/$defs/%23SparseJacobian"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "uncertainty_form": {
+                    "enum": [
+                        "expanded",
+                        "interval"
+                    ]
+                },
+                "uncertainty_paradigm": {
+                    "enum": [
+                        "lpu",
+                        "monte_carlo",
+                        "other"
+                    ]
+                },
+                "unit_conversion_logic": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "upstream_refs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            },
+            "$ref": "#/$defs/%23CoreQuantity",
+            "required": [
+                "uncertainty_form",
+                "uncertainty_paradigm"
+            ]
+        },
+        "#NumericArray": {
+            "type": "array",
+            "items": {
+                "type": "number"
+            }
+        },
+        "#PhysicalContext": {
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/%23SimpleQuantity"
+                            },
+                            {
+                                "$ref": "#/$defs/%23CoreQuantity"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "number"
+                    },
+                    {
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        "#ProcessDescription": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "analysis_scripts": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                },
+                "calculation_results": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "external_data_refs": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                "process_description": {
+                    "type": "string"
+                },
+                "process_id": {
+                    "type": "string"
+                },
+                "raw_data_refs": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                "software_environment": {
+                    "anyOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "process_id"
+            ]
+        },
+        "#ReferencePlane": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "context": {
+                    "$ref": "#/$defs/%23PhysicalContext"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "shift": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23SimpleQuantity"
+                        },
+                        {
+                            "$ref": "#/$defs/%23CoreQuantity"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "label"
+            ]
+        },
+        "#SimpleQuantity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "unit": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "unit",
+                "value"
+            ]
+        },
+        "#SoftwareDeclaration": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "implements_bayesian": {
+                    "type": "boolean"
+                },
+                "implements_conformity": {
+                    "type": "boolean"
+                },
+                "implements_correlation": {
+                    "type": "boolean"
+                },
+                "implements_dcc": {
+                    "type": "boolean"
+                },
+                "implements_dsi": {
+                    "type": "boolean"
+                },
+                "implements_interfaces": {
+                    "type": "boolean"
+                },
+                "implements_lpu": {
+                    "type": "boolean"
+                },
+                "implements_monte_carlo": {
+                    "type": "boolean"
+                },
+                "implements_multivariate": {
+                    "type": "boolean"
+                },
+                "software_date": {
+                    "type": "string"
+                },
+                "software_description": {
+                    "type": "string"
+                },
+                "software_name": {
+                    "type": "string"
+                },
+                "software_publisher": {
+                    "type": "string"
+                },
+                "software_uri": {
+                    "type": "string"
+                },
+                "software_version": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "software_name",
+                "software_version"
+            ]
+        },
+        "#SparseJacobian": {
+            "type": "object",
+            "additionalProperties": {
+                "anyOf": [
+                    {
+                        "type": "number"
+                    },
+                    {
+                        "$ref": "#/$defs/%23DataPayload"
+                    }
+                ]
+            }
+        },
+        "#Tensor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "coordinates": {
+                    "$ref": "#/$defs/%23CoordinateMap"
+                },
+                "data": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/%23NumericArray"
+                        },
+                        {
+                            "$ref": "#/$defs/%23ExternalReference"
+                        }
+                    ]
+                },
+                "dimensions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "shape": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "required": [
+                "data"
+            ]
+        }
+    },
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "certificate": {
+            "$ref": "#/$defs/%23CertificateDataPackage"
+        },
+        "format_version": {
+            "type": "string"
+        },
+        "processes": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/%23ProcessDescription"
+            }
+        },
+        "results": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/%23MeasurementResult"
+            }
+        },
+        "software": {
+            "$ref": "#/$defs/%23SoftwareDeclaration"
+        }
+    },
+    "required": [
+        "format_version",
+        "software"
+    ]
+}
+;
+        const defs = schema.$defs || {};
+
+        const FEATURE_GROUPS = [
+            "Core Payload", "Monte Carlo", "LPU", "Multivariate",
+            "Correlation", "Conformity", "DCC", "Bayesian", "Interfaces", "DSI"
+        ];
+
+        const FIELD_MAPPING = {
+            "implements_bayesian": "Bayesian",
+            "implements_conformity": "Conformity",
+            "implements_correlation": "Correlation",
+            "implements_dcc": "DCC",
+            "implements_dsi": "DSI",
+            "implements_interfaces": "Interfaces",
+            "implements_lpu": "LPU",
+            "implements_monte_carlo": "Monte Carlo",
+            "implements_multivariate": "Multivariate",
+            "acceptance_limits": "Conformity",
+            "accreditation_ref": "DCC",
+            "cert_process_id": "DCC",
+            "conformity_statement": "Conformity",
+            "customer_id": "DCC",
+            "decision_rule": "Conformity",
+            "digital_signature": "DCC",
+            "guard_band": "Conformity",
+            "gum_mcm_comparison": "Monte Carlo",
+            "item_id": "DCC",
+            "jacobian_matrix": "Multivariate",
+            "laboratory_id": "DCC",
+            "measurement_date": "DCC",
+            "measurement_location": "DCC",
+            "measurement_method": "DCC",
+            "normative_refs": "DCC",
+            "responsible_persons": "DCC",
+            "risk_probabilities": "Bayesian",
+            "traceability_statement": "DCC",
+            "correlation_matrix": "Correlation",
+            "covariance_matrix": "Multivariate",
+            "covariance_structure": "Multivariate",
+            "coverage_interval": "Monte Carlo",
+            "data_representation": "DSI",
+            "interfaces": "Interfaces",
+            "mc_convergence": "Monte Carlo",
+            "mc_rng_identifier": "Monte Carlo",
+            "mc_sample_count": "Monte Carlo",
+            "mc_samples": "Monte Carlo",
+            "mc_seed": "Monte Carlo",
+            "sensitivity_vector": "Multivariate",
+            "unit_conversion_logic": "DSI",
+            "coverage_factor": "LPU",
+            "degrees_of_freedom": "LPU",
+            "distribution_family": "LPU",
+            "distribution_params": "LPU",
+            "expanded_uncertainty": "LPU"
+        };
+
+        const topLevelColumns = ["software", "results", "certificate", "processes"];
+
+        // Modal State
+        let navStack = [];
+
+        function getTypeString(node) {
+            if (node.$ref) {
+                const refName = node.$ref.split("/").pop().replace("%23", "#");
+                return `<span class="type-link" onclick="openDefinition('${refName}')">${refName}</span>`;
+            }
+            if (node.type === "array" && node.items) {
+                return `[...${getTypeString(node.items)}]`;
+            }
+            if (node.anyOf) {
+                return node.anyOf.map(getTypeString).join(" | ");
+            }
+            if (node.enum) {
+                return node.enum.map(x => `"${x}"`).join(" | ");
+            }
+            return node.type || "any";
+        }
+
+        // Resolves properties of a given definition or schema node
+        function getProperties(node) {
+            let actualNode = node;
+            if (node.$ref) {
+                const refName = node.$ref.split("/").pop().replace("%23", "#");
+                actualNode = defs[refName] || {};
+            } else if (node.type === "array" && node.items && node.items.$ref) {
+                const refName = node.items.$ref.split("/").pop().replace("%23", "#");
+                actualNode = defs[refName] || {};
+            }
+            return {
+                props: actualNode.properties || {},
+                req: actualNode.required || []
+            };
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById("grid");
+            
+            // Render Headers
+            grid.innerHTML += `<div class="grid-header">Feature Band</div>`;
+            topLevelColumns.forEach(col => {
+                grid.innerHTML += `<div class="grid-header">${col}</div>`;
+            });
+
+            // Extract items for columns
+            const colData = {};
+            topLevelColumns.forEach(colKey => {
+                const node = schema.properties && schema.properties[colKey];
+                colData[colKey] = getProperties(node);
+            });
+
+            // Render Rows
+            FEATURE_GROUPS.forEach((feat, index) => {
+                const rowClass = index % 2 === 0 ? "row-alt" : "";
+                
+                let rowHtml = `<div class="band-label ${rowClass}">${feat}</div>`;
+                
+                topLevelColumns.forEach(colKey => {
+                    const { props, req } = colData[colKey];
+                    let cellContent = "";
+                    
+                    Object.keys(props).sort().forEach(propKey => {
+                        const band = FIELD_MAPPING[propKey] || "Core Payload";
+                        if (band === feat) {
+                            const isReq = req.includes(propKey);
+                            const tStr = getTypeString(props[propKey]);
+                            
+                            // Check if this property directly references a definition
+                            let clickAttr = "";
+                            let interactiveClass = "";
+                            const rawTypeRef = extractDirectRef(props[propKey]);
+                            if (rawTypeRef) {
+                                clickAttr = `onclick="openDefinition('${rawTypeRef}')"`;
+                                interactiveClass = "node-interactive";
+                            }
+
+                            cellContent += `
+                                <div class="node ${interactiveClass}" ${clickAttr}>
+                                    <div>
+                                        <span class="node-name">${propKey}</span>
+                                        <span class="node-req">${isReq ? "*" : ""}</span>
+                                    </div>
+                                    <div class="node-type">${tStr}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    rowHtml += `<div class="grid-cell ${rowClass}">${cellContent}</div>`;
+                });
+                
+                grid.innerHTML += rowHtml;
+            });
+        }
+
+        function extractDirectRef(node) {
+            if (node.$ref) return node.$ref.split("/").pop().replace("%23", "#");
+            if (node.type === "array" && node.items && node.items.$ref) return node.items.$ref.split("/").pop().replace("%23", "#");
+            return null;
+        }
+
+        function openDefinition(refName) {
+            navStack.push(refName);
+            renderModal();
+            document.getElementById("modalOverlay").classList.add("active");
+        }
+
+        function navigateTo(index) {
+            navStack = navStack.slice(0, index + 1);
+            renderModal();
+        }
+
+        function closeModal() {
+            document.getElementById("modalOverlay").classList.remove("active");
+            navStack = [];
+        }
+
+        function renderModal() {
+            if (navStack.length === 0) return;
+            const currentRef = navStack[navStack.length - 1];
+            const defNode = defs[currentRef];
+            
+            document.getElementById("modalTitle").innerText = currentRef;
+
+            // Render Breadcrumbs
+            const breadcrumbEl = document.getElementById("modalBreadcrumb");
+            breadcrumbEl.innerHTML = navStack.map((ref, idx) => {
+                if (idx === navStack.length - 1) {
+                    return `<span class="current">${ref}</span>`;
+                }
+                return `<span onclick="navigateTo(${idx})">${ref}</span><span class="separator">&gt;</span>`;
+            }).join("");
+
+            // Render Table
+            const tbody = document.getElementById("modalTableBody");
+            tbody.innerHTML = "";
+
+            if (!defNode) {
+                tbody.innerHTML = `<tr><td colspan="3">Definition not found.</td></tr>`;
+                return;
+            }
+
+            const props = defNode.properties || {};
+            const req = defNode.required || [];
+
+            if (Object.keys(props).length === 0) {
+                // It might be a type alias (e.g., #NumericArray: [...number])
+                const typeInfo = getTypeString(defNode);
+                tbody.innerHTML = `<tr><td colspan="3"><strong>Alias:</strong> ${typeInfo}</td></tr>`;
+                return;
+            }
+
+            Object.keys(props).sort().forEach(propKey => {
+                const isReq = req.includes(propKey);
+                const tStr = getTypeString(props[propKey]);
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-family: monospace;">${propKey}</td>
+                        <td style="color: #d32f2f; font-weight: bold;">${isReq ? "Yes" : "No"}</td>
+                        <td>${tStr}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Setup Event Listeners
+        document.getElementById("modalClose").addEventListener("click", closeModal);
+        document.getElementById("modalOverlay").addEventListener("click", (e) => {
+            if (e.target === document.getElementById("modalOverlay")) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        renderGrid();
+    </script>
+</body>
+</html>
