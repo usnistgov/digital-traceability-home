@@ -1,0 +1,134 @@
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #333;
+    background: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── HEADER ── */
+#header {
+    background: #5ec9ac;
+    padding: 4.5rem 2rem;
+    text-align: center;
+}
+#header h1 {
+    color: #fff;
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.65rem;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+#header p.subtitle {
+    color: rgba(255,255,255,0.9);
+    font-size: 1.15rem;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+}
+
+/* ── MAIN ── */
+main { flex: 1; }
+
+.inner { max-width: 960px; margin: 0 auto; padding: 0 2rem; width: 100%; }
+
+/* ── QUICK LINKS ── */
+.quick-links-band {
+    background: #daeee8;
+    padding: 3.2rem 0;
+}
+.quick-links-band h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #2a5f4e;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.8rem;
+}
+.cards {
+    display: flex;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+}
+.card {
+    flex: 1 1 240px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+}
+.card:hover {
+    box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+    transform: translateY(-4px);
+}
+.card a.card-link {
+    display: block;
+    height: 100%;
+    padding: 1.6rem 1.5rem;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+.card a.card-link,
+.card a.card-link:hover,
+.card a.card-link:visited,
+.card a.card-link:active,
+.card a.card-link:focus { color: inherit; text-decoration: none; outline: none; }
+.card-title {
+    color: #1f5c4a;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+.card span.card-desc {
+    display: block;
+    margin-top: 0.65rem;
+    font-size: 0.85rem;
+    color: #5a7a72;
+    line-height: 1.6;
+}
+
+/* ── OUR VISION ── */
+.vision-band {
+    padding: 3.5rem 0;
+}
+.vision-band h2 {
+    font-size: 1.65rem;
+    color: #1a3d35;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+}
+.vision-band .underline {
+    width: 52px;
+    height: 4px;
+    background: #5ec9ac;
+    border-radius: 2px;
+    margin-bottom: 1.5rem;
+}
+.vision-band p {
+    color: #444;
+    line-height: 1.8;
+    max-width: 760px;
+    margin-bottom: 1.1rem;
+}
+
+/* ── FOOTER ── */
+footer {
+    background: #1e3d34;
+    color: rgba(255,255,255,0.65);
+    text-align: center;
+    padding: 1.8rem 1rem;
+    font-size: 0.84rem;
+}
+footer a { color: rgba(255,255,255,0.85); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+    header h1 { font-size: 1.8rem; }
+    .cards { flex-direction: column; }
+}
